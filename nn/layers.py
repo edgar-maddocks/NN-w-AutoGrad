@@ -62,9 +62,9 @@ class Convolutional(Layer):
         for i in range(self.depth):
             for j in range(self.input_depth):
                 self.output[i] += correlate2d(
-                    self.input[j], self.kernels[i, j], "valid"
+                    self.input.data[j], self.params["w"].data[i, j], "valid"
                 )
-        return self.output
+        return Tensor(self.output)
 
 
 F = Callable[[Tensor], Tensor]
