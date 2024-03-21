@@ -1,9 +1,12 @@
 from layers import Layer
 from tensor import Tensor
-from typing import List, Iterator, Tuple
+from typing import List, Iterator, Tuple, Union
+import numpy as np
 
 import os
 import time
+
+Arrayable = Union[Tensor, np.ndarray, list]
 
 
 class Sequential:
@@ -29,6 +32,19 @@ class Sequential:
     def evaluate(self, val_inputs, val_targets):
         raise NotImplementedError
 
+    def __call__(self, input: Arrayable) -> Tensor:
+        input_tensor = self.to_tensor(input)
+        return self.forward(input_tensor)
+
+    def to_tensor(self, input: Arrayable) -> Tensor:
+        if isinstance(input, Tensor):
+            return input
+        elif isinstance(input, Arrayable):
+            if isinstance(input, list):
+                return Tensor(np.array(input))
+            elif isinstance(input, np.ndarray):
+                return Tensor(input)
+
 
 from optimizers import Optimizer, SGD
 from losses import Loss, MSE
@@ -37,14 +53,16 @@ from dataiterators import DataIterator, BatchIterator
 
 def fit(
     network: Sequential,
-    train_inputs: Tensor,
-    train_targets: Tensor,
+    train_inputs: Arrayable,
+    train_targets: Arrayable,
     loss: Loss = MSE(),
     optimizer: Optimizer = SGD(),
     epochs: int = 1000,
     iterator: DataIterator = BatchIterator(),
 ) -> None:
     start_time = time.time()
+    train_inputs = network.to_tensor(train_inputs)
+    train_targets = network.to_tensor(train_targets)
     for epoch in range(epochs):
         ep_loss = 0.0
         for batch in iterator(train_inputs, train_targets):
