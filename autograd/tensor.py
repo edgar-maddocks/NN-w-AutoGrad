@@ -1,7 +1,16 @@
 import numpy as np
 from typing import List, NamedTuple, Callable, Union
 
+
 Arrayable = Union[float, list, np.ndarray]
+Tensorable = Union["Tensor", float, np.ndarray]
+
+
+def to_tensor(x: Tensorable) -> "Tensor":
+    if isinstance(x, Tensor):
+        return x
+    else:
+        return Tensor(x)
 
 
 def to_array(x: Arrayable) -> np.ndarray:
@@ -109,27 +118,69 @@ class Tensor:
 
         return grad
 
-    def __add__(self, other: "Tensor") -> "Tensor":
-        data = self.data + other.data
-        requires_grad = self.requires_grad or other.requires_grad
+    def __add__(self, other) -> "Tensor":
+        return self._add(self, to_tensor(other))
+
+    def __iadd__(self, other) -> "Tensor":
+        self.data = self.data + to_tensor(other).data
+        return self
+
+    def __radd__(self, other) -> "Tensor":
+        return self._add(to_tensor(other), self)
+
+    def __neg__(self) -> "Tensor":
+        return self._neg(self)
+
+    def __sub__(self, other) -> "Tensor":
+        return self._add(self, -(to_tensor(other)))
+
+    def __isub__(self, other) -> "Tensor":
+        self.data = self.data - to_tensor(other).data
+        return self
+
+    def __rsub__(self, other) -> "Tensor":
+        return self._sub(to_tensor(other), self)
+
+    def __mul__(self, other) -> "Tensor":
+        return self._mul(self, to_tensor(other))
+
+    def __imul__(self, other) -> "Tensor":
+        self.data = self.data * to_tensor(other).data
+        return self
+
+    def __rmul__(self, other) -> "Tensor":
+        return self._mul(to_tensor(other), self)
+
+    def __matmul__(self, other) -> "Tensor":
+        return self._matmul(self, to_tensor(other))
+
+    def _add(self, t: "Tensor", other: "Tensor") -> "Tensor":
+
+        data = t.data + other.data
+
+        requires_grad = t.requires_grad or other.requires_grad
 
         dependencies = []
 
-        if self.requires_grad:
+        if t.requires_grad:
 
             def grad_func1(grad: np.ndarray) -> np.ndarray:
-                grad = self.__sum_added_dims(data, grad, self)
-                grad = self.__sum_broadcasted_dims(grad, self)
+
+                grad = t.__sum_added_dims(data, grad, t)
+
+                grad = t.__sum_broadcasted_dims(grad, t)
 
                 return grad
 
-            dependencies.append(Dependency(self, grad_func1))
+            dependencies.append(Dependency(t, grad_func1))
 
         if other.requires_grad:
 
             def grad_func2(grad: np.ndarray) -> np.ndarray:
-                grad = self.__sum_added_dims(data, grad, other)
-                grad = self.__sum_broadcasted_dims(grad, other)
+
+                grad = t.__sum_added_dims(data, grad, other)
+
+                grad = t.__sum_broadcasted_dims(grad, other)
 
                 return grad
 
@@ -137,50 +188,61 @@ class Tensor:
 
         return Tensor(data, requires_grad, dependencies)
 
-    def __neg__(t: "Tensor") -> "Tensor":
+    def _neg(self, t: "Tensor") -> "Tensor":
+
         data = -t.data
+
         requires_grad = t.requires_grad
 
         dependencies = []
 
         if requires_grad:
+
             dependencies.append(Dependency(t, lambda x: -x))
 
         return Tensor(data, requires_grad, dependencies)
 
-    def __sub__(self, other: "Tensor") -> "Tensor":
-        return self + -other
+    def _sub(self, t: "Tensor", other: "Tensor") -> "Tensor":
 
-    def __mul__(self, other: "Tensor") -> "Tensor":
-        data = self.data * other.data
-        requires_grad = self.requires_grad or other.requires_grad
+        return t + -other
+
+    def _mul(self, t: "Tensor", other: "Tensor") -> "Tensor":
+
+        data = t.data * other.data
+
+        requires_grad = t.requires_grad or other.requires_grad
 
         dependencies = []
 
-        if self.requires_grad:
+        if t.requires_grad:
 
             def grad_func1(grad: np.ndarray) -> np.ndarray:
+
                 # y = a * b
+
                 # dy/da = b
 
                 grad = grad * other.data
 
-                grad = self.__sum_added_dims(data, grad, self)
-                grad = self.__sum_broadcasted_dims(grad, self)
+                grad = t.__sum_added_dims(data, grad, t)
+
+                grad = t.__sum_broadcasted_dims(grad, t)
 
                 return grad
 
-            dependencies.append(Dependency(self, grad_func1))
+            dependencies.append(Dependency(t, grad_func1))
 
         if other.requires_grad:
 
             def grad_func2(grad: np.ndarray) -> np.ndarray:
+
                 # dy/db = a
 
-                grad = grad * self.data
+                grad = grad * t.data
 
-                grad = self.__sum_added_dims(data, grad, other)
-                grad = self.__sum_broadcasted_dims(grad, other)
+                grad = t.__sum_added_dims(data, grad, other)
+
+                grad = t.__sum_broadcasted_dims(grad, other)
 
                 return grad
 
@@ -188,29 +250,35 @@ class Tensor:
 
         return Tensor(data, requires_grad, dependencies)
 
-    def __matmul__(self, other: "Tensor") -> "Tensor":
-        data = self.data @ other.data
-        requires_grad = self.requires_grad or other.requires_grad
+    def _matmul(self, t: "Tensor", other: "Tensor") -> "Tensor":
+
+        data = t.data @ other.data
+
+        requires_grad = t.requires_grad or other.requires_grad
 
         dependencies = []
 
-        if self.requires_grad:
+        if t.requires_grad:
 
             def grad_func1(grad: np.ndarray) -> np.ndarray:
+
                 # y = A * B
+
                 # dy/dA = grad @ B.T
 
                 # No broadcasting for matmul so no need to sum out dims
+
                 return grad @ other.data.T
 
-            dependencies.append(Dependency(self, grad_func1))
+            dependencies.append(Dependency(t, grad_func1))
 
         if other.requires_grad:
 
             def grad_func2(grad: np.ndarray) -> np.ndarray:
+
                 # dy/dB = A.T @ grad
 
-                return self.data.T @ grad
+                return t.data.T @ grad
 
             dependencies.append(Dependency(other, grad_func2))
 

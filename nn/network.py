@@ -1,5 +1,5 @@
 from layers import Layer
-from tensor import Tensor
+from autograd.tensor import Tensor
 from typing import List, Iterator, Tuple, Union
 import numpy as np
 

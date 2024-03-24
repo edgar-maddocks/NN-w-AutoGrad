@@ -1,5 +1,5 @@
 import numpy as np
-from tensor import Tensor
+from autograd.tensor import Tensor
 
 
 class Loss:

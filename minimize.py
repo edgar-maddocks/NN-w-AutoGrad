@@ -2,24 +2,44 @@
     Use autograd to minimize x**2
 """
 
-from tensor import Tensor
-import random
+from autograd.tensor import Tensor, Tensorable
 import numpy as np
 
 
-# t1 is (3, 2)
-t1 = Tensor([[1, 2], [3, 4], [5, 6]], requires_grad=True)
+x_data = Tensor(np.random.randn(100, 3))
+coef = Tensor(np.array([-1, +3, -2], dtype=np.float64))
+y_data = x_data @ coef + 5
 
-# t2 is a (2, 1)
-t2 = Tensor([[10], [20]], requires_grad=True)
 
-t3 = t1 @ t2
+class LinearRegression:
+    def __init__(self, lr: float = 0.001):
+        self.lr = lr
 
-assert t3.data.tolist() == [[50], [110], [170]]
+        self.w = None
+        self.b = None
 
-grad = Tensor([[-1], [-2], [-3]])
-t3.backward(grad)
+    def _SoS(self, true: Tensor, preds: Tensor) -> Tensor:
+        error = true - preds
+        return (error * error).sum()
 
-np.testing.assert_array_equal(t1.grad.data, grad.data @ t2.data.T)
+    def fit(self, x_train: Tensorable, y_train: Tensorable, epochs: int = 100):
+        self.w = Tensor(np.random.randn(x_train.shape[1]), requires_grad=True)
+        self.b = Tensor(np.random.randn(), requires_grad=True)
 
-np.testing.assert_array_equal(t2.grad.data, t1.data.T @ grad.data)
+        for epoch in range(epochs):
+            self.w.zero_grad()
+            self.b.zero_grad()
+            preds = x_data @ self.w + self.b
+
+            loss = self._SoS(y_train, preds)
+
+            print(loss)
+
+            loss.backward()
+
+            self.w -= self.lr * self.w.grad
+            self.b -= self.lr * self.b.grad
+
+
+model = LinearRegression()
+model.fit(x_data, y_data)
