@@ -2,34 +2,39 @@
     Use autograd to minimize x**2
 """
 
-from autograd.tensor import Tensor, Tensorable
+from autograd import *
+from nn2 import *
 import numpy as np
-
 
 x_data = Tensor(np.random.randn(100, 3))
 coef = Tensor(np.array([-1, +3, -2], dtype=np.float64))
 y_data = x_data @ coef + 5
 
 
+class LinRegModule(Module):
+    def __init__(self, x_shape):
+        self.w = Parameter(x_shape)
+        self.b = Parameter()
+
+    def predict(self, x):
+        return x @ self.w + self.b
+
+
 class LinearRegression:
-    def __init__(self, lr: float = 0.001):
-        self.lr = lr
+    def __init__(self):
+        self.mod = None
+        self.optim = SGD(lr=0.001)
 
-        self.w = None
-        self.b = None
-
-    def _SoS(self, true: Tensor, preds: Tensor) -> Tensor:
-        error = true - preds
+    def _SoS(self, y_true, y_hat):
+        error = y_true - y_hat
         return (error * error).sum()
 
-    def fit(self, x_train: Tensorable, y_train: Tensorable, epochs: int = 100):
-        self.w = Tensor(np.random.randn(x_train.shape[1]), requires_grad=True)
-        self.b = Tensor(np.random.randn(), requires_grad=True)
-
+    def fit(self, x_train, y_train, epochs: int = 100):
+        self.mod = LinRegModule(x_train.shape[1])
         for epoch in range(epochs):
-            self.w.zero_grad()
-            self.b.zero_grad()
-            preds = x_data @ self.w + self.b
+            self.mod.zero_grad()
+
+            preds = self.mod.predict(x_train)
 
             loss = self._SoS(y_train, preds)
 
@@ -37,8 +42,7 @@ class LinearRegression:
 
             loss.backward()
 
-            self.w -= self.lr * self.w.grad
-            self.b -= self.lr * self.b.grad
+            self.optim.step(self.mod)
 
 
 model = LinearRegression()

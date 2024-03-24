@@ -1,5 +1,5 @@
+from autograd import Tensor
 import numpy as np
-from autograd.tensor import Tensor
 
 
 class Loss:
@@ -7,12 +7,10 @@ class Loss:
         raise NotImplementedError
 
     def grad(self, y_true: Tensor, y_hat: Tensor) -> Tensor:
-        raise NotImplementedError
+        raise NotImplementedError  #
 
 
-class MSE(Loss):
-    def loss(self, y_true: Tensor, y_hat: Tensor) -> float:
-        return np.mean(np.power(y_true.data - y_hat.data, 2))
-
-    def grad(self, y_true: Tensor, y_hat: Tensor) -> Tensor:
-        return 2 * (y_hat.data - y_true.data) / np.size(y_true.data)
+class ASE(Loss):
+    def loss(self, y_true: Tensor, y_hat: Tensor) -> Tensor:
+        error = y_true - y_hat
+        return (error * error).sum()

@@ -1,15 +1,10 @@
-from network import Sequential
+from autograd import Module
 
 
-class Optimizer:
-    def step(self, net: Sequential) -> None:
-        raise NotImplementedError
-
-
-class SGD(Optimizer):
+class SGD:
     def __init__(self, lr: float = 0.01) -> None:
         self.lr = lr
 
-    def step(self, net: Sequential) -> None:
-        for param, grad in net.get_params_grads():
-            param.data -= self.lr * grad.data
+    def step(self, module: Module) -> None:
+        for param in module.parameters():
+            param -= self.lr * param.grad
