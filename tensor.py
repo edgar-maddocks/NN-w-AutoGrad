@@ -187,3 +187,31 @@ class Tensor:
             dependencies.append(Dependency(other, grad_func2))
 
         return Tensor(data, requires_grad, dependencies)
+
+    def __matmul__(self, other: "Tensor") -> "Tensor":
+        data = self.data @ other.data
+        requires_grad = self.requires_grad or other.requires_grad
+
+        dependencies = []
+
+        if self.requires_grad:
+
+            def grad_func1(grad: np.ndarray) -> np.ndarray:
+                # y = A * B
+                # dy/dA = grad @ B.T
+
+                # No broadcasting for matmul so no need to sum out dims
+                return grad @ other.data.T
+
+            dependencies.append(Dependency(self, grad_func1))
+
+        if other.requires_grad:
+
+            def grad_func2(grad: np.ndarray) -> np.ndarray:
+                # dy/dB = A.T @ grad
+
+                return self.data.T @ grad
+
+            dependencies.append(Dependency(other, grad_func2))
+
+        return Tensor(data, requires_grad, dependencies)
