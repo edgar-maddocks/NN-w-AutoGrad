@@ -6,8 +6,8 @@ class Loss:
     def loss(self, y_true: Tensor, y_hat: Tensor) -> float:
         raise NotImplementedError
 
-    def grad(self, y_true: Tensor, y_hat: Tensor) -> Tensor:
-        raise NotImplementedError  #
+    def __call__(self, y_true, y_hat):
+        return self.loss(y_true, y_hat)
 
 
 class ASE(Loss):
@@ -15,5 +15,8 @@ class ASE(Loss):
         error = y_true - y_hat
         return (error * error).sum()
 
-    def __call__(self, y_true, y_hat):
-        return self.loss(y_true, y_hat)
+
+class MSE(Loss):
+    def loss(self, y_true: Tensor, y_hat: Tensor) -> Tensor:
+        error = y_true - y_hat
+        return (error * error).mean()

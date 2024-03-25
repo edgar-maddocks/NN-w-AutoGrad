@@ -154,6 +154,9 @@ class Tensor:
     def __matmul__(self, other) -> "Tensor":
         return self._matmul(self, to_tensor(other))
 
+    def mean(self) -> "Tensor":
+        return self._mean(to_tensor(self))
+
     def _add(self, t: "Tensor", other: "Tensor") -> "Tensor":
 
         data = t.data + other.data
@@ -281,5 +284,21 @@ class Tensor:
                 return t.data.T @ grad
 
             dependencies.append(Dependency(other, grad_func2))
+
+        return Tensor(data, requires_grad, dependencies)
+
+    def _mean(self, t: "Tensor") -> "Tensor":
+        data = np.mean(t.data)
+
+        requires_grad = t.requires_grad
+
+        dependencies = []
+
+        if requires_grad:
+
+            def grad_func(grad: np.ndarray) -> np.ndarray:
+                return np.ones_like(grad) / np.prod(grad.shape)
+
+            dependencies.append(Dependency(t, grad_func))
 
         return Tensor(data, requires_grad, dependencies)

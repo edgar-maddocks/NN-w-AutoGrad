@@ -1,12 +1,14 @@
 from autograd import *
-from nn.losses import ASE
-from nn.optimizers import SGD
+from nn.losses import Loss, MSE
+from nn.optimizers import Optimizer, SGD
 from typing import List
 import time
 
 
 class Sequential:
-    def __init__(self, layers: List[Module], loss=ASE(), optimizer=SGD()) -> None:
+    def __init__(
+        self, layers: List[Module], loss: Loss = MSE(), optimizer: Optimizer = SGD()
+    ) -> None:
         self.layers = layers
         self.loss = loss
         self.optim = optimizer
