@@ -1,1 +1,1 @@
-from dense import Dense
+from nn.layers.dense import Dense
