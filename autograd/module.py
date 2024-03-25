@@ -16,3 +16,6 @@ class Module:
     def zero_grad(self) -> None:
         for parameter in self.parameters():
             parameter.zero_grad()
+
+    def forward(self, x):
+        raise NotImplementedError

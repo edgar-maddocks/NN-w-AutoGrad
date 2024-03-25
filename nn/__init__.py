@@ -1,1 +1,1 @@
-from nn2.optimizers import SGD
+from nn.optimizers import SGD
